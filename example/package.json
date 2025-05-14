@@ -9,9 +9,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-tooltip": "^1.2.6",
+    "nc-editor": "file:..",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "nc-editor": "file:.."
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.15",
