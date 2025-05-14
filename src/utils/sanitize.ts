@@ -59,99 +59,101 @@ export function sanitizeHtml(html: string): string {
     code: ["data-language"],
   };
 
-  // Recursively sanitize the element and its children
-  sanitizeNode(tempElement, allowedTags, allowedAttributes);
+  // Function to clean an element
+  const cleanElement = (element: Element) => {
+    // Skip text nodes
+    if (element.nodeType === Node.TEXT_NODE) {
+      return;
+    }
 
+    // Check if this element's tag is allowed
+    const tagName = element.tagName.toLowerCase();
+    if (!allowedTags.includes(tagName)) {
+      // Replace disallowed elements with their inner content
+      const fragment = document.createDocumentFragment();
+      while (element.firstChild) {
+        fragment.appendChild(element.firstChild);
+      }
+      element.parentNode?.replaceChild(fragment, element);
+      return;
+    }
+
+    // Clean attributes
+    Array.from(element.attributes).forEach((attr) => {
+      // Remove on* events (security)
+      if (attr.name.startsWith("on") || attr.value.includes("javascript:")) {
+        element.removeAttribute(attr.name);
+        return;
+      }
+
+      // Check if this attribute is allowed for this tag or for all tags
+      const tagSpecificAttrs =
+        allowedAttributes[tagName as keyof typeof allowedAttributes];
+      const globalAttrs = allowedAttributes.all;
+
+      // Allow data-* attributes for specific elements that support them
+      const isDataAttr = attr.name.startsWith("data-");
+      const supportsDataAttrs = ["div", "pre", "code"].includes(tagName);
+
+      const isAttrAllowed =
+        (tagSpecificAttrs && tagSpecificAttrs.includes(attr.name)) ||
+        globalAttrs.includes(attr.name) ||
+        (isDataAttr && supportsDataAttrs);
+
+      if (!isAttrAllowed) {
+        element.removeAttribute(attr.name);
+      }
+    });
+
+    // Recursively clean child elements
+    Array.from(element.children).forEach((child) => {
+      cleanElement(child);
+    });
+  };
+
+  // Clean the DOM tree
+  cleanElement(tempElement);
+
+  // Clean up any empty paragraphs that only contain <br> or &nbsp;
+  const paragraphs = tempElement.querySelectorAll("p");
+  paragraphs.forEach((p) => {
+    if (
+      p.innerHTML.trim() === "" ||
+      p.innerHTML.trim() === "<br>" ||
+      p.innerHTML.trim() === "&nbsp;"
+    ) {
+      p.innerHTML = "<br>";
+    }
+  });
+
+  // Return the cleaned HTML
   return tempElement.innerHTML;
 }
 
 /**
- * Sanitize a DOM node and its children
- */
-function sanitizeNode(
-  node: Element,
-  allowedTags: string[],
-  allowedAttributes: Record<string, string[]>
-): void {
-  // Process all child nodes recursively
-  const childNodes = Array.from(node.childNodes);
-  for (const child of childNodes) {
-    if (child.nodeType === Node.ELEMENT_NODE) {
-      const childElement = child as Element;
-      const tagName = childElement.tagName.toLowerCase();
-
-      // If this tag is not allowed, replace it with its contents
-      if (!allowedTags.includes(tagName)) {
-        // Create a document fragment to hold the child's contents
-        const fragment = document.createDocumentFragment();
-        while (childElement.firstChild) {
-          fragment.appendChild(childElement.firstChild);
-        }
-
-        // Replace the element with its children
-        node.replaceChild(fragment, childElement);
-        continue;
-      }
-
-      // Filter attributes
-      const attributesToRemove: string[] = [];
-      for (const attr of Array.from(childElement.attributes)) {
-        const attrName = attr.name;
-
-        // Check if this attribute is allowed for this tag
-        const allowedForTag = allowedAttributes[tagName] || [];
-        const allowedForAll = allowedAttributes.all || [];
-
-        // Special case for data-* attributes on divs
-        const isDataAttrOnDiv =
-          tagName === "div" &&
-          allowedAttributes.div.includes("data-*") &&
-          attrName.startsWith("data-");
-
-        if (
-          !allowedForAll.includes(attrName) &&
-          !allowedForTag.includes(attrName) &&
-          !isDataAttrOnDiv
-        ) {
-          attributesToRemove.push(attrName);
-        }
-      }
-
-      // Remove disallowed attributes
-      for (const attrName of attributesToRemove) {
-        childElement.removeAttribute(attrName);
-      }
-
-      // Process this element's children
-      sanitizeNode(childElement, allowedTags, allowedAttributes);
-    }
-  }
-}
-
-/**
- * Compares two HTML strings for semantic equivalence
- * This is useful for determining if the content has changed meaningfully
+ * Compares two HTML strings to check if they are semantically equivalent
+ * Ignores whitespace differences and minor formatting changes
  *
- * @param html1 First HTML string to compare
- * @param html2 Second HTML string to compare
- * @returns true if the HTML strings are semantically equivalent
+ * @param html1 First HTML string
+ * @param html2 Second HTML string
+ * @returns True if the HTML strings are semantically equivalent
  */
 export function areHtmlEquivalent(html1: string, html2: string): boolean {
   if (html1 === html2) return true;
 
-  // Create DOM elements to compare their content
-  const div1 = document.createElement("div");
-  const div2 = document.createElement("div");
+  // Create temporary DOM elements to normalize the HTML
+  const temp1 = document.createElement("div");
+  const temp2 = document.createElement("div");
 
-  div1.innerHTML = sanitizeHtml(html1);
-  div2.innerHTML = sanitizeHtml(html2);
+  temp1.innerHTML = html1.trim();
+  temp2.innerHTML = html2.trim();
 
-  // Normalize both elements to remove inconsistencies
-  normalizeElement(div1);
-  normalizeElement(div2);
+  // Normalize text nodes and remove unnecessary whitespace
+  normalizeElement(temp1);
+  normalizeElement(temp2);
 
   // Compare the normalized HTML
-  return div1.innerHTML === div2.innerHTML;
+  return temp1.innerHTML === temp2.innerHTML;
 }
 
 /**

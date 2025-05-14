@@ -1,18 +1,17 @@
-# NC-Editor
+# nc-editor
 
-A customizable rich text editor component for React applications.
+A comprehensive rich text editor React component with advanced formatting features.
 
 ## Features
 
-- Rich text editing with a user-friendly interface
-- HTML source view mode
-- Table management (create, edit, merge cells)
-- Image insertion and resizing
-- Code block insertion with language support
-- Comment insertion
+- Rich text formatting with font family, size, and color controls
+- Visual and source view editing modes
+- Insert tables, images, code blocks, and comments
+- Table manipulation (merge cells, insert/delete rows/columns)
+- Text direction support (LTR/RTL)
+- Find and replace
 - Fullscreen mode
 - Word count
-- Customizable appearance
 
 ## Installation
 
@@ -22,57 +21,88 @@ npm install nc-editor
 yarn add nc-editor
 ```
 
-## Usage
+## Dependencies
 
-```jsx
-import React, { useState } from "react";
+This component uses Tailwind CSS for styling. You need to set up Tailwind in your project:
+
+```bash
+npm install -D tailwindcss postcss autoprefixer @tailwindcss/typography
+# or
+yarn add -D tailwindcss postcss autoprefixer @tailwindcss/typography
+```
+
+Configure your tailwind.config.js:
+
+```js
+module.exports = {
+  content: [
+    // Your project content paths
+    "./node_modules/nc-editor/**/*.{js,ts,jsx,tsx}",
+  ],
+  plugins: [require("@tailwindcss/typography")],
+};
+```
+
+## Basic Usage
+
+```tsx
 import { NCEditor } from "nc-editor";
-import "nc-editor/dist/styles.css"; // Import styles
+import { DirectionProvider } from "nc-editor/dist/lib/direction-context";
 
-function App() {
-  const [content, setContent] = useState("<p>Hello World!</p>");
-
-  const handleChange = (newContent) => {
-    setContent(newContent);
-  };
+// Basic usage
+function MyEditor() {
+  const [content, setContent] = useState("<p>Hello, world!</p>");
 
   return (
-    <div className="app">
-      <h1>My Editor</h1>
+    <DirectionProvider>
       <NCEditor
         value={content}
-        onChange={handleChange}
+        onChange={setContent}
         placeholder="Start typing..."
       />
-    </div>
+    </DirectionProvider>
   );
 }
-
-export default App;
 ```
 
 ## Props
 
-| Prop                   | Type     | Default             | Description                                                 |
-| ---------------------- | -------- | ------------------- | ----------------------------------------------------------- |
-| value                  | string   | ""                  | The HTML content of the editor                              |
-| onChange               | function | required            | Callback function that is called when the content changes   |
-| placeholder            | string   | undefined           | Placeholder text when the editor is empty                   |
-| className              | string   | undefined           | Additional CSS class for the editor container               |
-| readOnly               | boolean  | false               | Whether the editor is in read-only mode                     |
-| autoInsertTable        | boolean  | false               | Automatically insert a table when the editor is initialized |
-| defaultFontFamily      | string   | "Arial, sans-serif" | Default font family for the editor content                  |
-| defaultFontSize        | string   | "16px"              | Default font size for the editor content                    |
-| defaultTextColor       | string   | "#000000"           | Default text color for the editor content                   |
-| defaultBackgroundColor | string   | ""                  | Default background color for the editor content             |
-| showWordCount          | boolean  | false               | Whether to show word and character count                    |
+| Prop                   | Type                    | Default             | Description                           |
+| ---------------------- | ----------------------- | ------------------- | ------------------------------------- |
+| value                  | string                  | ''                  | HTML content of the editor            |
+| onChange               | (value: string) => void | required            | Called when content changes           |
+| placeholder            | string                  | undefined           | Placeholder text when editor is empty |
+| className              | string                  | undefined           | Additional CSS classes                |
+| readOnly               | boolean                 | false               | Makes the editor read-only            |
+| autoInsertTable        | boolean                 | false               | Auto-inserts a 2x2 table on init      |
+| defaultFontFamily      | string                  | 'Arial, sans-serif' | Default font family                   |
+| defaultFontSize        | string                  | '16px'              | Default font size                     |
+| defaultTextColor       | string                  | '#000000'           | Default text color                    |
+| defaultBackgroundColor | string                  | ''                  | Default background color              |
+| showWordCount          | boolean                 | false               | Shows word and character count        |
 
 ## Advanced Usage
 
-For advanced usage, you can import individual components and utilities:
+```tsx
+import { NCEditor } from "nc-editor";
+import { DirectionProvider } from "nc-editor/dist/lib/direction-context";
 
-```jsx
-import { NCEditor, sanitizeHtml } from "nc-editor";
+function AdvancedEditor() {
+  const [content, setContent] = useState("<p>Hello, world!</p>");
+
+  return (
+    <DirectionProvider initialDirection="ltr">
+      <NCEditor
+        value={content}
+        onChange={setContent}
+        defaultFontFamily="Georgia, serif"
+        defaultFontSize="18px"
+        defaultTextColor="#333333"
+        showWordCount={true}
+      />
+    </DirectionProvider>
+  );
+}
 ```
 
 ## License

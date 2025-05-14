@@ -71,7 +71,6 @@ function createResizableImageHtml(src: string, alt: string): string {
  * Initialize image resizing functionality for all images in the editor
  *
  * @param editorElement The editor DOM element
- * @returns A cleanup function to remove event listeners
  */
 export function initImageResizing(editorElement: HTMLElement): () => void {
   let activeResizeHandle: HTMLElement | null = null;
@@ -122,60 +121,51 @@ export function initImageResizing(editorElement: HTMLElement): () => void {
 
     e.preventDefault();
 
-    // Calculate the new width and height
+    // Calculate new dimensions
     const deltaX = e.clientX - startX;
-    const deltaY = e.clientY - startY;
-
-    // Maintain aspect ratio while resizing (optional)
-    const aspectRatio = startWidth / startHeight;
-
-    // Calculate new dimensions (you can modify this logic based on your needs)
     const newWidth = Math.max(30, startWidth + deltaX);
-    const newHeight = Math.max(30, newWidth / aspectRatio);
 
-    // Apply the new dimensions to the image
+    // Calculate height to maintain aspect ratio
+    const aspectRatio = startHeight / startWidth;
+    const newHeight = Math.round(newWidth * aspectRatio);
+
+    // Update image dimensions
     currentImage.style.width = `${newWidth}px`;
     currentImage.style.height = `${newHeight}px`;
 
-    // Update size indicator if present
+    // Update size indicator
     if (sizeIndicator) {
       updateSizeIndicator(newWidth, newHeight);
     }
   };
 
-  const handleMouseUp = (e: MouseEvent) => {
-    if (activeResizeHandle) {
-      e.preventDefault();
+  const handleMouseUp = () => {
+    activeResizeHandle = null;
+    currentImage = null;
 
-      // Hide size indicator
-      if (sizeIndicator) {
-        sizeIndicator.style.display = "none";
-      }
-
-      // Reset state
-      activeResizeHandle = null;
-      currentImage = null;
-      sizeIndicator = null;
-
-      // Remove event listeners
-      document.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseup", handleMouseUp);
+    // Hide size indicator after a delay
+    if (sizeIndicator) {
+      setTimeout(() => {
+        if (sizeIndicator) {
+          sizeIndicator.style.display = "none";
+        }
+      }, 1500);
     }
+
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", handleMouseUp);
   };
 
-  // Helper function to update the size indicator text
   const updateSizeIndicator = (width: number, height: number) => {
     if (sizeIndicator) {
-      sizeIndicator.textContent = `${Math.round(width)} × ${Math.round(
-        height
-      )}`;
+      sizeIndicator.textContent = `${width}×${height}`;
     }
   };
 
-  // Add event listener for mousedown to detect resize handle clicks
+  // Add event listener to the editor
   editorElement.addEventListener("mousedown", handleMouseDown);
 
-  // Return a cleanup function
+  // Return cleanup function
   return () => {
     editorElement.removeEventListener("mousedown", handleMouseDown);
     document.removeEventListener("mousemove", handleMouseMove);

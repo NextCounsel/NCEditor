@@ -24,13 +24,10 @@ export function insertCodeBlock(
 }
 
 /**
- * Escape HTML special characters to prevent XSS
- *
- * @param text Text to escape
- * @returns Escaped text
+ * Escapes HTML special characters to prevent XSS
  */
-function escapeHtml(text: string): string {
-  return text
+function escapeHtml(html: string): string {
+  return html
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")

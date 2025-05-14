@@ -1,44 +1,55 @@
 /**
- * Creates a table element with the specified number of rows and columns
+ * Creates a HTML table element with the specified rows and columns
  *
- * @param rows Number of rows in the table
- * @param cols Number of columns in the table
+ * @param rows Number of rows to create
+ * @param cols Number of columns to create
  * @returns HTML string for the table
  */
 export function createTableElement(rows: number, cols: number): string {
-  let tableHtml =
-    '<table style="border-collapse: collapse; width: 100%; margin: 1rem 0; border: 1px solid #cbd5e1;">';
-
-  // Create table header
-  tableHtml += "<thead>";
-  tableHtml += "<tr>";
-  for (let i = 0; i < cols; i++) {
-    tableHtml +=
-      '<th style="border: 1px solid #cbd5e1; padding: 0.5rem; background-color: #f1f5f9; font-weight: 500;">Header ' +
-      (i + 1) +
-      "</th>";
+  if (rows < 1 || cols < 1) {
+    return "";
   }
-  tableHtml += "</tr>";
-  tableHtml += "</thead>";
 
-  // Create table body
-  tableHtml += "<tbody>";
-  for (let i = 0; i < rows - 1; i++) {
-    // -1 because we already created a header row
-    tableHtml += "<tr>";
-    for (let j = 0; j < cols; j++) {
-      tableHtml +=
-        '<td style="border: 1px solid #cbd5e1; padding: 0.5rem;">Cell ' +
-        (i + 1) +
-        "-" +
-        (j + 1) +
-        "</td>";
+  // Start the table with responsive and styled classes
+  let tableHtml = `
+    <table class="nc-table w-full border-collapse border border-slate-300 my-4" style="width: 100%; border-collapse: collapse; margin: 1rem 0; border: 1px solid #cbd5e1;">
+      <thead>
+        <tr class="bg-slate-100" style="background-color: #f1f5f9;">
+  `;
+
+  // Create header cells
+  for (let col = 0; col < cols; col++) {
+    tableHtml += `<th class="border border-slate-300 p-2 text-left font-medium" style="border: 1px solid #cbd5e1; padding: 0.5rem; text-align: left; font-weight: 500;">Header ${
+      col + 1
+    }</th>`;
+  }
+
+  // Close header row and start tbody
+  tableHtml += `
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  // Create data rows
+  for (let row = 1; row < rows; row++) {
+    tableHtml += `<tr>`;
+
+    // Create cells for this row
+    for (let col = 0; col < cols; col++) {
+      tableHtml += `<td class="border border-slate-300 p-2" style="border: 1px solid #cbd5e1; padding: 0.5rem;">Cell ${row}, ${
+        col + 1
+      }</td>`;
     }
-    tableHtml += "</tr>";
-  }
-  tableHtml += "</tbody>";
 
-  tableHtml += "</table>";
+    tableHtml += `</tr>`;
+  }
+
+  // Close the table
+  tableHtml += `
+      </tbody>
+    </table>
+  `;
 
   return tableHtml;
 }
@@ -82,105 +93,107 @@ export function mergeCells(
 
   if (!startCell || !endCell) return;
 
-  // Determine which cells to merge based on direction
+  // If merging horizontally, cells must be in the same row
   if (direction === "horizontal") {
-    // For horizontal merge, cells must be in the same row
     const startRow = startCell.parentElement;
     const endRow = endCell.parentElement;
 
     if (startRow !== endRow) {
-      console.warn("Cannot merge horizontally across different rows");
+      console.warn("Cannot merge cells across different rows horizontally");
       return;
     }
 
-    // Find all cells between start and end in the same row
-    const rowCells = Array.from(startRow?.cells || []);
+    // Get all cells between start and end in the row
+    const rowCells = Array.from((startRow as HTMLTableRowElement)?.cells || []);
     const startIndex = rowCells.indexOf(startCell);
     const endIndex = rowCells.indexOf(endCell);
 
-    if (startIndex < 0 || endIndex < 0) return;
+    if (startIndex === -1 || endIndex === -1) return;
 
-    const minIndex = Math.min(startIndex, endIndex);
-    const maxIndex = Math.max(startIndex, endIndex);
+    const min = Math.min(startIndex, endIndex);
+    const max = Math.max(startIndex, endIndex);
 
-    for (let i = minIndex; i <= maxIndex; i++) {
-      targetCells.push(rowCells[i]);
-    }
+    targetCells = rowCells.slice(min, max + 1) as HTMLTableCellElement[];
 
-    // Set colspan on the first cell
-    if (targetCells.length > 0) {
-      const firstCell = targetCells[0];
-      const totalColspan = targetCells.reduce(
-        (sum, cell) => sum + parseInt(cell.getAttribute("colspan") || "1", 10),
-        0
-      );
+    if (targetCells.length < 2) return;
 
-      firstCell.setAttribute("colspan", totalColspan.toString());
+    // Calculate total colspan
+    let totalColspan = 0;
+    targetCells.forEach((cell) => {
+      totalColspan += parseInt(cell.getAttribute("colspan") || "1");
+    });
 
-      // Remove other cells
-      for (let i = 1; i < targetCells.length; i++) {
-        targetCells[i].remove();
-      }
+    // Merge the cells
+    const firstCell = targetCells[0];
+    firstCell.setAttribute("colspan", totalColspan.toString());
+
+    // Combine content and remove other cells
+    for (let i = 1; i < targetCells.length; i++) {
+      firstCell.innerHTML += " " + targetCells[i].innerHTML;
+      targetCells[i].remove();
     }
   } else if (direction === "vertical") {
-    // For vertical merge, cells must be in the same column
-    const startRowIndex = getRowIndex(startCell);
-    const endRowIndex = getRowIndex(endCell);
-    const startColIndex = getCellIndex(startCell);
-    const endColIndex = getCellIndex(endCell);
+    // For vertical merging, we need to find cells in the same column
+    const startCellIndex = getCellIndex(startCell);
+    const endCellIndex = getCellIndex(endCell);
 
-    if (startColIndex !== endColIndex) {
-      console.warn("Cannot merge vertically across different columns");
+    if (
+      startCellIndex === -1 ||
+      endCellIndex === -1 ||
+      startCellIndex !== endCellIndex
+    ) {
+      console.warn("Cannot merge cells across different columns vertically");
       return;
     }
 
-    const minRowIndex = Math.min(startRowIndex, endRowIndex);
-    const maxRowIndex = Math.max(startRowIndex, endRowIndex);
+    // Get all rows
+    const rows = Array.from(table.rows);
+    const startRowIndex = getRowIndex(startCell);
+    const endRowIndex = getRowIndex(endCell);
 
-    // Find cells in the same column across rows
-    for (let i = minRowIndex; i <= maxRowIndex; i++) {
-      const row = table.rows[i];
-      if (row && startColIndex < row.cells.length) {
-        targetCells.push(row.cells[startColIndex]);
+    if (startRowIndex === -1 || endRowIndex === -1) return;
+
+    const min = Math.min(startRowIndex, endRowIndex);
+    const max = Math.max(startRowIndex, endRowIndex);
+
+    // Get cells in the same column from each row
+    for (let i = min; i <= max; i++) {
+      const row = rows[i];
+      const cell = row.cells[startCellIndex] as HTMLTableCellElement;
+      if (cell) {
+        targetCells.push(cell);
       }
     }
 
-    // Set rowspan on the first cell
-    if (targetCells.length > 0) {
-      const firstCell = targetCells[0];
-      const totalRowspan = targetCells.reduce(
-        (sum, cell) => sum + parseInt(cell.getAttribute("rowspan") || "1", 10),
-        0
-      );
+    if (targetCells.length < 2) return;
 
-      firstCell.setAttribute("rowspan", totalRowspan.toString());
+    // Calculate total rowspan
+    let totalRowspan = 0;
+    targetCells.forEach((cell) => {
+      totalRowspan += parseInt(cell.getAttribute("rowspan") || "1");
+    });
 
-      // Remove other cells
-      for (let i = 1; i < targetCells.length; i++) {
-        targetCells[i].remove();
-      }
+    // Merge the cells
+    const firstCell = targetCells[0];
+    firstCell.setAttribute("rowspan", totalRowspan.toString());
+
+    // Combine content and remove other cells
+    for (let i = 1; i < targetCells.length; i++) {
+      firstCell.innerHTML += " " + targetCells[i].innerHTML;
+      targetCells[i].remove();
     }
   }
 }
 
 /**
- * Helper function to find the closest table cell containing a node
+ * Helper function to find the closest table cell from a node
  */
-function findClosestCell(node: Node | null): HTMLTableCellElement | null {
-  if (!node) return null;
-
-  let current: Node | null = node;
-  while (current) {
-    if (
-      current.nodeType === Node.ELEMENT_NODE &&
-      (current.nodeName === "TD" || current.nodeName === "TH")
-    ) {
-      return current as HTMLTableCellElement;
-    }
-    current = current.parentNode;
+function findClosestCell(node: Node): HTMLTableCellElement | null {
+  while (node && node.nodeName !== "TD" && node.nodeName !== "TH") {
+    node = node.parentNode as Node;
+    if (!node) return null;
   }
-
-  return null;
+  return node as HTMLTableCellElement;
 }
 
 /**
@@ -262,50 +275,43 @@ export function insertTableColumn(
   const cell = findClosestCell(selection.anchorNode as Node);
   if (!cell) return;
 
-  // Get the index of the current cell
+  // Get the table
+  const table = cell.closest("table") as HTMLTableElement;
+  if (!table) return;
+
+  // Get the index of the cell in its row
   const cellIndex = getCellIndex(cell);
   if (cellIndex === -1) return;
 
-  // Find the table containing the cell
-  let currentNode: Node | null = cell;
-  let table: HTMLTableElement | null = null;
+  // The actual index where we'll insert our column
+  const insertIndex = position === "before" ? cellIndex : cellIndex + 1;
 
-  while (currentNode && currentNode !== editorElement) {
-    if (currentNode.nodeName === "TABLE") {
-      table = currentNode as HTMLTableElement;
-      break;
-    }
-    currentNode = currentNode.parentNode;
-  }
+  // Loop through all rows and insert a cell at the same position
+  Array.from(table.rows).forEach((row) => {
+    const newCell =
+      row.parentNode?.nodeName === "THEAD"
+        ? document.createElement("th")
+        : document.createElement("td");
 
-  if (!table) return;
+    newCell.className =
+      row.parentNode?.nodeName === "THEAD"
+        ? "border border-slate-300 p-2 text-left font-medium"
+        : "border border-slate-300 p-2";
 
-  // Calculate the target index for the new column
-  const targetIndex = position === "before" ? cellIndex : cellIndex + 1;
-
-  // Insert a new cell in each row at the target index
-  for (let i = 0; i < table.rows.length; i++) {
-    const row = table.rows[i];
-    const newCell = document.createElement(
-      i === 0 && row.parentElement?.nodeName === "THEAD" ? "th" : "td"
-    );
+    newCell.style.cssText =
+      row.parentNode?.nodeName === "THEAD"
+        ? "border: 1px solid #cbd5e1; padding: 0.5rem; text-align: left; font-weight: 500;"
+        : "border: 1px solid #cbd5e1; padding: 0.5rem;";
 
     newCell.innerHTML = "&nbsp;";
 
-    if (i === 0 && row.parentElement?.nodeName === "THEAD") {
-      newCell.style.cssText =
-        "border: 1px solid #cbd5e1; padding: 0.5rem; background-color: #f1f5f9; font-weight: 500;";
-    } else {
-      newCell.style.cssText = "border: 1px solid #cbd5e1; padding: 0.5rem;";
-    }
-
-    // Insert at the correct position
-    if (targetIndex >= row.cells.length) {
+    // Insert at the right position
+    if (insertIndex >= row.cells.length) {
       row.appendChild(newCell);
     } else {
-      row.insertBefore(newCell, row.cells[targetIndex]);
+      row.insertBefore(newCell, row.cells[insertIndex]);
     }
-  }
+  });
 }
 
 /**
@@ -324,10 +330,11 @@ export function deleteTableRow(editorElement: HTMLElement): void {
   if (!row) return;
 
   // Don't delete if it's the only row in the table
-  if (row.parentElement?.rows.length === 1) return;
+  const table = row.closest("table") as HTMLTableElement;
+  if (table && table.rows.length <= 1) return;
 
   // Delete the row
-  row.parentNode?.removeChild(row);
+  row.remove();
 }
 
 /**
@@ -341,32 +348,21 @@ export function deleteTableColumn(editorElement: HTMLElement): void {
   const cell = findClosestCell(selection.anchorNode as Node);
   if (!cell) return;
 
-  // Get the index of the current cell
+  // Get the table
+  const table = cell.closest("table") as HTMLTableElement;
+  if (!table) return;
+
+  // Get the index of the cell in its row
   const cellIndex = getCellIndex(cell);
   if (cellIndex === -1) return;
 
-  // Find the table containing the cell
-  let currentNode: Node | null = cell;
-  let table: HTMLTableElement | null = null;
-
-  while (currentNode && currentNode !== editorElement) {
-    if (currentNode.nodeName === "TABLE") {
-      table = currentNode as HTMLTableElement;
-      break;
-    }
-    currentNode = currentNode.parentNode;
-  }
-
-  if (!table) return;
-
   // Don't delete if it's the only column in the table
-  if (table.rows[0].cells.length === 1) return;
+  if (table.rows[0].cells.length <= 1) return;
 
-  // Delete the cell at the specified index in each row
-  for (let i = 0; i < table.rows.length; i++) {
-    const row = table.rows[i];
-    if (cellIndex < row.cells.length) {
-      row.deleteCell(cellIndex);
+  // Delete the column from all rows
+  Array.from(table.rows).forEach((row) => {
+    if (row.cells[cellIndex]) {
+      row.cells[cellIndex].remove();
     }
-  }
+  });
 }
