@@ -23,15 +23,15 @@
     "wysiwyg",
     "contenteditable"
   ],
-  "author": "Your Name",
+  "author": "NextCounsel",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/nc-editor.git"
+    "url": "https://github.com/NextCounsel/NCEditor.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/nc-editor/issues"
+    "url": "https://github.com/NextCounsel/NCEditor/issues"
   },
-  "homepage": "https://github.com/yourusername/nc-editor#readme",
+  "homepage": "https://github.com/NextCounsel/NCEditor#readme",
   "license": "MIT",
   "peerDependencies": {
     "react": "^18.0.0",
