@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { NCEditor } from "nc-editor";
 import { TooltipProvider } from "@radix-ui/react-tooltip";
+// replace directional context
 
 function App() {
   const [content, setContent] = useState("<p>Start editing here...</p>");
